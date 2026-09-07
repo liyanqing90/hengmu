@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Enforce changed-line coverage against a pull request merge base."""
+"""Enforce changed-line coverage for committed or local source changes."""
 
 from __future__ import annotations
 
@@ -37,21 +37,39 @@ def git(root: Path, *arguments: str) -> str:
 
 def resolve_merge_base(root: Path, base_sha: str) -> str:
     if COMMIT_RE.fullmatch(base_sha) is None:
-        raise ChangedCoverageError("Pull request base SHA must be a full commit hash")
+        raise ChangedCoverageError("Baseline SHA must be a full commit hash")
     return git(root, "merge-base", "HEAD", base_sha)
 
 
-def changed_python_paths(root: Path, merge_base: str) -> tuple[str, ...]:
+def changed_python_paths(
+    root: Path,
+    merge_base: str,
+    *,
+    include_uncommitted: bool = False,
+) -> tuple[str, ...]:
     output = git(
         root,
         "diff",
         "--name-only",
+        "-z",
         "--diff-filter=ACMR",
-        f"{merge_base}...HEAD",
+        merge_base if include_uncommitted else f"{merge_base}...HEAD",
         "--",
         *SCOPED_PATHS,
     )
-    return tuple(line for line in output.splitlines() if line.endswith(".py"))
+    paths = {path for path in output.split("\0") if path.endswith(".py")}
+    if include_uncommitted:
+        untracked = git(
+            root,
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+            "-z",
+            "--",
+            *SCOPED_PATHS,
+        )
+        paths.update(path for path in untracked.split("\0") if path.endswith(".py"))
+    return tuple(sorted(paths))
 
 
 def coverage_xml_paths(root: Path, coverage_xml: Path) -> set[str]:
@@ -96,6 +114,7 @@ def run_diff_cover(
     merge_base: str,
     *,
     fail_under: float,
+    include_uncommitted: bool = False,
 ) -> None:
     executable = shutil.which("diff-cover")
     if executable is None:
@@ -108,6 +127,11 @@ def run_diff_cover(
             merge_base,
             "--fail-under",
             str(fail_under),
+            *(
+                ["--include-untracked"]
+                if include_uncommitted
+                else ["--ignore-staged", "--ignore-unstaged"]
+            ),
         ],
         cwd=root,
         check=False,
@@ -122,23 +146,39 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--coverage", type=Path, default=Path("coverage.xml"))
-    parser.add_argument("--base-sha", default=os.environ.get("PR_BASE_SHA"))
+    parser.add_argument(
+        "--base-sha", help="Full baseline commit SHA; also enables a local check."
+    )
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help=(
+            "Include staged, unstaged, and untracked source files; "
+            "default baseline is HEAD."
+        ),
+    )
     parser.add_argument("--fail-under", type=float, default=90.0)
     args = parser.parse_args()
-    if os.environ.get("GITHUB_EVENT_NAME") != "pull_request":
+    is_pull_request = os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+    if not is_pull_request and not args.local and args.base_sha is None:
         print("Changed-line coverage skipped: not a pull request event.")
         return 0
     try:
-        if args.base_sha is None:
-            raise ChangedCoverageError("PR_BASE_SHA is required for pull requests")
         root = args.root.resolve()
+        base_sha = args.base_sha or (
+            os.environ.get("PR_BASE_SHA") if is_pull_request else None
+        )
+        if base_sha is None and args.local:
+            base_sha = git(root, "rev-parse", "HEAD")
+        if base_sha is None:
+            raise ChangedCoverageError("PR_BASE_SHA is required for pull requests")
         coverage_xml = args.coverage
         if not coverage_xml.is_absolute():
             coverage_xml = root / coverage_xml
         if not coverage_xml.is_file():
             raise ChangedCoverageError(f"Coverage XML is missing: {coverage_xml}")
-        merge_base = resolve_merge_base(root, args.base_sha)
-        paths = changed_python_paths(root, merge_base)
+        merge_base = resolve_merge_base(root, base_sha)
+        paths = changed_python_paths(root, merge_base, include_uncommitted=args.local)
         if not paths:
             print("Changed-line coverage skipped: no non-deleted Python changes.")
             return 0
@@ -148,6 +188,7 @@ def main() -> int:
             coverage_xml,
             merge_base,
             fail_under=args.fail_under,
+            include_uncommitted=args.local,
         )
     except (ChangedCoverageError, OSError) as exc:
         print(f"Changed-line coverage failed: {exc}", file=sys.stderr)

@@ -11,6 +11,7 @@ patch = ["subprocess"]
 
 [tool.coverage.report]
 include = ["resources/scripts/*", "scripts/*"]
+include_namespace_packages = true
 show_missing = true
 skip_covered = true
 

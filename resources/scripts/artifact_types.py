@@ -62,31 +62,6 @@ class ProfileArtifact(TypedDict):
     project: ProjectIdentity
 
 
-class GatePolicyArtifact(TypedDict):
-    schema_version: str
-    stages: dict[str, Any]
-    release_requirements: dict[str, Any]
-
-
-class DecisionIdentity(TypedDict):
-    id: str
-    knowledge_selection_path: NotRequired[str]
-
-
-class DecisionArtifact(TypedDict):
-    schema_version: str
-    decision: DecisionIdentity
-
-
-class PlanIdentity(TypedDict):
-    id: str
-
-
-class PlanArtifact(TypedDict):
-    schema_version: str
-    plan: PlanIdentity
-
-
 class KnowledgeSelectionInputs(TypedDict):
     facts_sha256: str
     profile_sha256: NotRequired[str]
@@ -97,16 +72,3 @@ class KnowledgeSelectionArtifact(TypedDict):
     selection: list[dict[str, Any]]
     excluded: list[dict[str, Any]]
     inputs: KnowledgeSelectionInputs
-
-
-class EvidenceRunIdentity(TypedDict):
-    id: str
-    provider_id: str
-    trust: str
-    commit: str
-
-
-class EvidenceRunArtifact(TypedDict):
-    schema_version: str
-    run: EvidenceRunIdentity
-    result: dict[str, Any]

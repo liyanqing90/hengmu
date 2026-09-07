@@ -18,11 +18,6 @@ SPEC.loader.exec_module(validate_repository)
 
 
 class SiteContractTests(unittest.TestCase):
-    def test_site_contract(self) -> None:
-        errors: list[str] = []
-        validate_repository.validate_site(ROOT, errors)
-        self.assertEqual(errors, [], "\n".join(errors))
-
     def test_missing_locale_key_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

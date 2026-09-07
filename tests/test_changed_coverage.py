@@ -156,6 +156,93 @@ class ChangedCoverageTests(unittest.TestCase):
                 ("resources/scripts/runtime.py", "scripts/new_check.py"),
             )
 
+    def test_local_scope_includes_pending_source_and_ignores_deletions(self) -> None:
+        scripts = self.root / "scripts"
+        scripts.mkdir()
+        modified = scripts / "modified.py"
+        deleted = scripts / "deleted.py"
+        modified.write_text("VALUE = 1\n", encoding="utf-8")
+        deleted.write_text("VALUE = 1\n", encoding="utf-8")
+        (self.root / ".gitignore").write_text("scripts/ignored.py\n", encoding="utf-8")
+        base = self.commit("base")
+        modified.write_text("VALUE = 2\n", encoding="utf-8")
+        deleted.unlink()
+        (scripts / "staged.py").write_text("STAGED = True\n", encoding="utf-8")
+        self.git("add", "scripts/staged.py")
+        runtime = self.root / "resources/scripts"
+        runtime.mkdir(parents=True)
+        (runtime / "新 check.py").write_text("NEW = True\n", encoding="utf-8")
+        (scripts / "ignored.py").write_text("IGNORED = True\n", encoding="utf-8")
+        (self.root / "outside.py").write_text("OUTSIDE = True\n", encoding="utf-8")
+        self.assertEqual(
+            check_changed_coverage.changed_python_paths(self.root, base), ()
+        )
+        self.assertEqual(
+            check_changed_coverage.changed_python_paths(
+                self.root, base, include_uncommitted=True
+            ),
+            (
+                "resources/scripts/新 check.py",
+                "scripts/modified.py",
+                "scripts/staged.py",
+            ),
+        )
+
+    def test_local_main_checks_untracked_coverage_and_explicit_base_without_pr(
+        self,
+    ) -> None:
+        (self.root / "README.md").write_text("base\n", encoding="utf-8")
+        base = self.commit("base")
+        source = self.root / "scripts/new.py"
+        source.parent.mkdir()
+        source.write_text("CHECK = True\n", encoding="utf-8")
+        coverage_xml = self.root / "coverage.xml"
+        arguments = [
+            str(SCRIPT),
+            "--root",
+            str(self.root),
+            "--coverage",
+            str(coverage_xml),
+        ]
+        for hits, expected in ((None, 2), (0, 2), (1, 0)):
+            coverage_xml.write_text(
+                '<coverage><packages><package name="scripts"><classes>'
+                + (
+                    ""
+                    if hits is None
+                    else (
+                        '<class filename="scripts/new.py"><lines>'
+                        f'<line number="1" hits="{hits}"/>'
+                        "</lines></class>"
+                    )
+                )
+                + "</classes></package></packages></coverage>",
+                encoding="utf-8",
+            )
+            with (
+                self.subTest(hits=hits),
+                patch.dict(
+                    os.environ, {"GITHUB_EVENT_NAME": "push", "PR_BASE_SHA": "ignored"}
+                ),
+                patch.object(sys, "argv", [*arguments, "--local"]),
+            ):
+                self.assertEqual(check_changed_coverage.main(), expected)
+        self.commit("add source")
+        with (
+            patch.dict(os.environ, {"GITHUB_EVENT_NAME": "push"}),
+            patch.object(sys, "argv", [*arguments, "--base-sha", base]),
+        ):
+            self.assertEqual(check_changed_coverage.main(), 0)
+
+    def test_pr_still_requires_a_baseline(self) -> None:
+        with (
+            patch.dict(os.environ, {"GITHUB_EVENT_NAME": "pull_request"}, clear=True),
+            patch.object(sys, "argv", [str(SCRIPT), "--root", str(self.root)]),
+            redirect_stderr(io.StringIO()) as stderr,
+        ):
+            self.assertEqual(check_changed_coverage.main(), 2)
+        self.assertIn("PR_BASE_SHA is required", stderr.getvalue())
+
     def test_pr_main_rejects_missing_coverage_before_diff_cover(self) -> None:
         path = self.root / "scripts" / "new_check.py"
         path.parent.mkdir()

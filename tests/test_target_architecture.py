@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_ROOT = ROOT / "resources" / "scripts"
 sys.path.insert(0, str(SCRIPT_ROOT))
 
+import knowledge_model  # noqa: E402
 from build_project_profile import build_profile  # noqa: E402
 from inspect_repository import InspectionError, inspect_repository  # noqa: E402
 from knowledge_model import (  # noqa: E402
@@ -1069,6 +1070,58 @@ setup(name="example", install_requires=RUNTIME_REQUIREMENTS)
             },
         )
         self.assertTrue(all(manifest["_validated_counts"].values()))
+
+    def test_golden_similarity_preserves_exact_threshold_and_token_order(self) -> None:
+        knowledge_root = self.root / "knowledge"
+        manifest = yaml.safe_load(
+            (ROOT / "resources/knowledge/manifest.yaml").read_text(encoding="utf-8")
+        )
+        for pack in manifest["packs"]:
+            pack["required"] = pack["id"] == "foundations"
+            (knowledge_root / pack["path"]).mkdir(parents=True)
+        (knowledge_root / "manifest.yaml").write_text(
+            yaml.safe_dump(manifest), encoding="utf-8"
+        )
+        left = [f"token{index}" for index in range(100)]
+        cases = (
+            ("distinct", ["different"] * 100, False),
+            ("identical", left, True),
+            ("threshold", left[:88] + ["different"] * 12, True),
+            ("below-threshold", left[:87] + ["different"] * 13, False),
+            ("same-tokens-reordered", left[50:] + left[:50], False),
+        )
+
+        def parsed_entry(path: Path, **_kwargs):
+            return knowledge_model.KnowledgeEntry(
+                path=path,
+                metadata={"id": path.stem, "maturity": "golden", "related": []},
+                body=path.read_text(encoding="utf-8"),
+                sha256=knowledge_model.sha256_file(path),
+            )
+
+        for name, right, rejected in cases:
+            (knowledge_root / "foundations/left.md").write_text(
+                " ".join(left), encoding="utf-8"
+            )
+            (knowledge_root / "foundations/right.md").write_text(
+                " ".join(right), encoding="utf-8"
+            )
+            with (
+                self.subTest(case=name),
+                patch.object(
+                    knowledge_model, "validate_markdown_entry", side_effect=parsed_entry
+                ),
+            ):
+                if rejected:
+                    with self.assertRaisesRegex(KnowledgeError, "too similar"):
+                        validate_knowledge_tree(
+                            knowledge_root, schema_root=ROOT / "resources/schemas"
+                        )
+                else:
+                    _, entries = validate_knowledge_tree(
+                        knowledge_root, schema_root=ROOT / "resources/schemas"
+                    )
+                    self.assertEqual(set(entries), {"left", "right"})
 
     def test_ai_knowledge_2026_freshness_boundaries_are_exact(self) -> None:
         cases = (

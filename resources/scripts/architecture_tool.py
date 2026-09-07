@@ -63,7 +63,7 @@ VERIFICATION_LEVEL_ORDER = {
     "V4": 4,
     "V5": 5,
 }
-TOOL_VERSION = "1.2.0"
+TOOL_VERSION = "1.2.1"
 TRUSTED_POLICY_VERSIONS = {"1.1", "1.2"}
 BENCHMARK_TREATMENT_CONDITIONS = ("base", "full", "compressed")
 REVIEW_KIND_CORE_PACK = {
@@ -2547,7 +2547,7 @@ def validate_review(
                 )
             verified_snapshot = _declared_review_snapshot(data["review"])
             candidate_snapshot = _declared_review_snapshot(candidate["review"])
-            source_snapshot = _declared_source_snapshot(source)
+            source_snapshot = _declared_review_snapshot(source)
             if (
                 data["schema_version"] == "1.2"
                 and not allow_unverifiable_historical
@@ -2658,10 +2658,6 @@ def _declared_review_snapshot(value: dict[str, Any]) -> dict[str, Any]:
         if key in value:
             snapshot["repository_snapshot"] = value[key]
     return snapshot
-
-
-def _declared_source_snapshot(source: dict[str, Any]) -> dict[str, Any]:
-    return _declared_review_snapshot(source)
 
 
 def _brief_constraint_entries(data: dict[str, Any]) -> list[Any]:
