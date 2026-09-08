@@ -14,6 +14,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Local changed-line coverage now checks staged, unstaged, and untracked Python
   source on request, and coverage reports include namespace-package scripts.
   Missing coverage records and uncovered new files continue to fail closed.
+- Decode Git path output as UTF-8 so Chinese and other Unicode filenames are
+  preserved on Windows regardless of the local text encoding.
 
 ### Changed
 

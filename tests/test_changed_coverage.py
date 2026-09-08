@@ -188,6 +188,30 @@ class ChangedCoverageTests(unittest.TestCase):
             ),
         )
 
+    def test_unicode_paths_ignore_default_subprocess_encoding(self) -> None:
+        (self.root / "README.md").write_text("base\n", encoding="utf-8")
+        base = self.commit("base")
+        tracked = self.root / "scripts/已 tracked.py"
+        tracked.parent.mkdir()
+        tracked.write_text("TRACKED = True\n", encoding="utf-8")
+        self.commit("add tracked source")
+        pending = self.root / "resources/scripts/新 pending.py"
+        pending.parent.mkdir(parents=True)
+        pending.write_text("PENDING = True\n", encoding="utf-8")
+        # Exercise real Git output under the legacy text-decoding default used
+        # by Windows Python, regardless of the current host's locale.
+        with patch("subprocess._text_encoding", return_value="cp1252"):
+            self.assertEqual(
+                check_changed_coverage.changed_python_paths(self.root, base),
+                ("scripts/已 tracked.py",),
+            )
+            self.assertEqual(
+                check_changed_coverage.changed_python_paths(
+                    self.root, base, include_uncommitted=True
+                ),
+                ("resources/scripts/新 pending.py", "scripts/已 tracked.py"),
+            )
+
     def test_local_main_checks_untracked_coverage_and_explicit_base_without_pr(
         self,
     ) -> None:

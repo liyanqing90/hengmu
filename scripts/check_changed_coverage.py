@@ -29,6 +29,7 @@ def git(root: Path, *arguments: str) -> str:
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
     )
     if process.returncode != 0:
         raise ChangedCoverageError(process.stderr.strip() or "Git command failed")
