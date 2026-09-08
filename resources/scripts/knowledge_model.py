@@ -16,6 +16,8 @@ from typing import Any
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
+SAFE_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 _KNOWLEDGE_TREE_CACHE: dict[
     tuple[Path, Path, str, str],
     tuple[dict[str, Any], dict[str, KnowledgeEntry]],
@@ -121,7 +123,7 @@ def _knowledge_input_fingerprint(
     manifest_path = knowledge_root / "manifest.yaml"
     try:
         manifest_bytes = manifest_path.read_bytes()
-        manifest = yaml.safe_load(manifest_bytes.decode("utf-8"))
+        manifest = yaml.load(manifest_bytes.decode("utf-8"), Loader=SAFE_YAML_LOADER)
         if not isinstance(manifest, dict) or not isinstance(
             manifest.get("packs"), list
         ):
@@ -158,7 +160,7 @@ def _knowledge_input_fingerprint(
 
 def _load_yaml(path: Path) -> dict[str, Any]:
     try:
-        value = yaml.safe_load(path.read_text(encoding="utf-8"))
+        value = yaml.load(path.read_text(encoding="utf-8"), Loader=SAFE_YAML_LOADER)
     except FileNotFoundError as exc:
         raise KnowledgeError(f"Missing YAML file: {path}") from exc
     except yaml.YAMLError as exc:
@@ -219,7 +221,7 @@ def parse_markdown_entry(path: Path) -> tuple[dict[str, Any], str]:
     except ValueError as exc:
         raise KnowledgeError(f"{path} has no closing frontmatter delimiter") from exc
     try:
-        metadata = yaml.safe_load("\n".join(lines[1:closing]))
+        metadata = yaml.load("\n".join(lines[1:closing]), Loader=SAFE_YAML_LOADER)
     except yaml.YAMLError as exc:
         raise KnowledgeError(f"Invalid frontmatter in {path}: {exc}") from exc
     if not isinstance(metadata, dict):
@@ -432,20 +434,23 @@ def validate_knowledge_tree(
                 f"{entry.path} references unknown related IDs: " + ", ".join(unknown)
             )
     golden = [
-        entry
+        (entry, re.findall(r"[a-z0-9][a-z0-9-]*", entry.body.lower()))
         for entry in entries.values()
         if entry.metadata.get("maturity") == "golden"
     ]
-    for index, left in enumerate(golden):
-        for right in golden[index + 1 :]:
-            left_tokens = re.findall(r"[a-z0-9][a-z0-9-]*", left.body.lower())
-            right_tokens = re.findall(r"[a-z0-9][a-z0-9-]*", right.body.lower())
-            similarity = SequenceMatcher(
+    for index, (left, left_tokens) in enumerate(golden):
+        for right, right_tokens in golden[index + 1 :]:
+            matcher = SequenceMatcher(
                 None,
                 left_tokens,
                 right_tokens,
                 autojunk=False,
-            ).ratio()
+            )
+            # This upper bound can only rule out a match. Keep the exact ratio
+            # and threshold authoritative for every remaining pair.
+            if matcher.quick_ratio() < 0.88:
+                continue
+            similarity = matcher.ratio()
             if similarity >= 0.88:
                 raise KnowledgeError(
                     f"Golden entries {left.id} and {right.id} are too similar "
@@ -468,25 +473,4 @@ def knowledge_snapshot(entries: list[KnowledgeEntry]) -> list[dict[str, str]]:
             "sha256": entry.sha256,
         }
         for entry in sorted(entries, key=lambda item: item.id)
-    ]
-
-
-def entry_index(
-    entries: dict[str, KnowledgeEntry],
-    knowledge_root: Path,
-) -> list[dict[str, Any]]:
-    root = knowledge_root.resolve()
-    return [
-        {
-            "id": entry.id,
-            "kind": entry.metadata["kind"],
-            "version": entry.metadata["version"],
-            "path": entry.path.resolve().relative_to(root).as_posix(),
-            "sha256": entry.sha256,
-            "domains": entry.metadata["domains"],
-            "triggers": entry.metadata["triggers"],
-            "quality_attributes": entry.metadata["quality_attributes"],
-            "status": entry.metadata["status"],
-        }
-        for entry in sorted(entries.values(), key=lambda item: item.id)
     ]

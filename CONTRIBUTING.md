@@ -30,6 +30,53 @@ Windows PowerShell users can activate with:
 .venv\Scripts\Activate.ps1
 ```
 
+## Local feedback loop
+
+Keep the current worktree and select tests from the changed behavior, its callers,
+and an adjacent failure path. Run those tests during development; the complete
+checks below remain the pull request and release contract.
+
+| Changed owner | Start with |
+|---|---|
+| Knowledge parsing, selection, or caches | `tests/test_target_architecture.py`, `tests/test_review_execution.py`, and the `selection_v14` cases in `tests/test_architecture_tool.py` |
+| Repository or site validation | `tests/test_repository_contract.py`, `tests/test_site_contract.py` |
+| Changed-line coverage | `tests/test_changed_coverage.py` |
+| Packaging and release | `tests/test_package_plugin.py`, `tests/test_supply_chain.py`, `tests/test_release_publication.py` |
+
+For example, after changing the coverage checker:
+
+```bash
+python3 -m pytest tests/test_changed_coverage.py -q --maxfail=1 --durations=5
+python3 -m ruff check scripts/check_changed_coverage.py tests/test_changed_coverage.py
+python3 -m ruff format --check scripts/check_changed_coverage.py tests/test_changed_coverage.py
+```
+
+Use explicit test node IDs to isolate a failure. After fixing it, rerun the
+selected affected file groups so a passing isolated case does not hide an
+adjacent regression. `--durations=5` identifies expensive cases without adding
+a timing threshold to functional tests.
+
+To check coverage before committing, generate fresh XML from the affected tests:
+
+```bash
+python3 -m pytest tests/test_changed_coverage.py --cov --cov-branch --cov-report=xml
+python3 scripts/check_changed_coverage.py --local
+```
+
+`--local` compares against `HEAD` and includes staged, unstaged, and untracked
+Python source under `scripts/` and `resources/scripts/`. Supply `--base-sha`
+with a full commit hash to include earlier branch changes too. `--base-sha`
+without `--local` checks committed changes only and also works outside CI.
+Missing coverage records and uncovered new files fail the check. Regenerate XML
+after edits; the checker does not certify that an existing report is fresh.
+
+Passing local tests does not renew governance evidence. Changes to Selector
+implementation inputs invalidate the old current-runtime lock. Keep historical
+artifacts intact and produce new per-run Selection, Review, and verification
+records before the change gate; preserve their source commits as described
+below. Do not disable trust checks or reuse a historical verified status to
+make a development result look release-ready.
+
 ## Making a Skill change
 
 Every Skill must:

@@ -44,26 +44,26 @@ class AIAgentDepthTests(unittest.TestCase):
         self.assertIn("Do not load every", skill)
         self.assertIn("candidate-driving claim", skill)
 
-    def test_reference_and_knowledge_cover_depth_boundaries(self) -> None:
+    def test_reference_documents_each_bundled_rule_once(self) -> None:
+        pack = yaml.safe_load(
+            (ROOT / "resources/rules/ai-agent-core.yaml").read_text(encoding="utf-8")
+        )
         reference = (ROOT / "resources/references/ai-agent-rules.md").read_text(
             encoding="utf-8"
         )
-        knowledge = (
-            ROOT / "resources/knowledge/domains/ai-agent/overview.md"
-        ).read_text(encoding="utf-8")
-        for text in (reference, knowledge):
-            for phrase in (
-                "authority",
-                "provenance",
-                "recency",
-                "stable",
-                "volatile",
-                "critical flow",
-                "adopt",
-                "retain",
-                "reject",
-            ):
-                self.assertIn(phrase, text.lower())
+        rows = [
+            [cell.strip() for cell in line.strip("|").split("|")]
+            for line in reference.splitlines()
+            if line.startswith("| `AI.")
+        ]
+        rule_ids = [row[0].strip("`") for row in rows]
+        self.assertEqual(set(rule_ids), {rule["id"] for rule in pack["rules"]})
+        self.assertEqual(len(rule_ids), len(set(rule_ids)))
+        for row in rows:
+            with self.subTest(rule_id=row[0]):
+                self.assertEqual(len(row), 3)
+                self.assertTrue(row[1], "Rule domain is missing")
+                self.assertTrue(row[2], "Rule invariant is missing")
 
 
 if __name__ == "__main__":

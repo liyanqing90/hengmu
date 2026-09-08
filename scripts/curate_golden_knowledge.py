@@ -1124,10 +1124,6 @@ def parse_frontmatter(path: Path) -> dict[str, Any]:
     return metadata
 
 
-def list_text(value: str) -> str:
-    return "\n".join(f"- {part.strip()}" for part in value.split(", ") if part.strip())
-
-
 def decision_body(spec: dict[str, Any]) -> str:
     option_names = ", ".join(item[0] for item in spec["options"])
     options = []

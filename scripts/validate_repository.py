@@ -15,6 +15,8 @@ import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError
 
+SAFE_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 EXPECTED_SKILLS = (
     "ai-agent-architecture-audit",
     "architecture-finding-verifier",
@@ -232,7 +234,7 @@ def load_json(path: Path, errors: list[str]) -> dict[str, Any] | None:
 
 def load_yaml(path: Path, errors: list[str]) -> Any:
     try:
-        return yaml.safe_load(path.read_text(encoding="utf-8"))
+        return yaml.load(path.read_text(encoding="utf-8"), Loader=SAFE_YAML_LOADER)
     except FileNotFoundError:
         errors.append(f"missing YAML file: {path}")
     except yaml.YAMLError as exc:

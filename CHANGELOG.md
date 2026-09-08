@@ -7,10 +7,28 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-09-08
+
+### Fixed
+
+- Local changed-line coverage now checks staged, unstaged, and untracked Python
+  source on request, and coverage reports include namespace-package scripts.
+  Missing coverage records and uncovered new files continue to fail closed.
+- Decode Git path output as UTF-8 so Chinese and other Unicode filenames are
+  preserved on Windows regardless of the local text encoding.
+
+### Changed
+
+- Knowledge validation uses the available safe C YAML loader with a safe Python
+  fallback, tokenizes golden entries once, and skips exact similarity work only
+  when its upper bound is below the unchanged rejection threshold.
+- Remove unused internal helpers and type declarations, and document focused
+  local validation without changing the hosted quality or governance gates.
+
+
 ## [1.2.0] - 2026-08-29
 
-Release status: implementation pending hosted and release verification. v1.1.3
-remains the published immutable Release.
+Release status: published at 2026-08-29T10:42:41Z.
 
 ### Added
 

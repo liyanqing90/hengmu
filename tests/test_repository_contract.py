@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import tomllib
 import unittest
+import xml.etree.ElementTree as ElementTree
 from pathlib import Path
 from typing import get_type_hints
+from unittest.mock import patch
 
 import yaml
 from jsonschema import Draft202012Validator
@@ -23,6 +27,34 @@ SPEC.loader.exec_module(validate_repository)
 
 
 class RepositoryContractTests(unittest.TestCase):
+    def test_yaml_loaders_preserve_values_and_reject_unsafe_tags(self) -> None:
+        text = (
+            "date: 2026-09-05\nvalues: &values [true, null, 1.5, 中文]\ncopy: *values\n"
+        )
+        expected = yaml.safe_load(text)
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "input.yaml"
+            for loader in {yaml.SafeLoader, validate_repository.SAFE_YAML_LOADER}:
+                with (
+                    self.subTest(loader=loader.__name__),
+                    patch.object(validate_repository, "SAFE_YAML_LOADER", loader),
+                ):
+                    path.write_text(text, encoding="utf-8")
+                    errors: list[str] = []
+                    self.assertEqual(
+                        validate_repository.load_yaml(path, errors), expected
+                    )
+                    self.assertEqual(errors, [])
+                    for invalid in (
+                        "values: [",
+                        "!!python/object/apply:builtins.str [unsafe]",
+                    ):
+                        path.write_text(invalid, encoding="utf-8")
+                        errors = []
+                        self.assertIsNone(validate_repository.load_yaml(path, errors))
+                        self.assertEqual(len(errors), 1)
+                        self.assertIn("invalid YAML", errors[0])
+
     def test_repository_contract(self) -> None:
         errors = validate_repository.validate_repository(ROOT)
         self.assertEqual(errors, [], "\n".join(errors))
@@ -50,6 +82,46 @@ class RepositoryContractTests(unittest.TestCase):
             ["resources/scripts/*", "scripts/*"],
         )
         self.assertNotIn("fail_under", report)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for relative in (
+                "scripts/executed.py",
+                "scripts/unexecuted.py",
+                "resources/scripts/runtime.py",
+            ):
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("VALUE = 1\n", encoding="utf-8")
+            config = str(ROOT / "pyproject.toml")
+            for arguments in (
+                ["run", "--rcfile", config, "scripts/executed.py"],
+                ["xml", "--rcfile", config, "-o", "coverage.xml"],
+            ):
+                subprocess.run(
+                    [sys.executable, "-m", "coverage", *arguments],
+                    cwd=root,
+                    env={**os.environ, "COVERAGE_FILE": str(root / ".coverage")},
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            classes = {
+                item.attrib["filename"]: item
+                for item in ElementTree.parse(root / "coverage.xml").findall(".//class")
+            }
+            self.assertEqual(
+                set(classes),
+                {
+                    "scripts/executed.py",
+                    "scripts/unexecuted.py",
+                    "resources/scripts/runtime.py",
+                },
+            )
+            for relative in ("scripts/unexecuted.py", "resources/scripts/runtime.py"):
+                line = classes[relative].find("lines/line")
+                self.assertIsNotNone(line)
+                self.assertEqual(line.attrib["hits"], "0")
 
     def test_github_action_scalar_forms_are_parsed_and_pinned(self) -> None:
         commit = "a" * 40
@@ -152,7 +224,7 @@ class RepositoryContractTests(unittest.TestCase):
             selector["plugin_version"],
             template["selector"]["source"]["plugin_version"],
         }
-        self.assertEqual(versions, {"1.2.0"})
+        self.assertEqual(versions, {"1.2.1"})
 
         schema = json.loads(
             (

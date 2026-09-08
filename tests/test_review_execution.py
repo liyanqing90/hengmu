@@ -26,6 +26,35 @@ import knowledge_model  # noqa: E402
 
 
 class ReviewExecutionRuntimeTests(unittest.TestCase):
+    def test_knowledge_loaders_preserve_the_validated_tree_and_reject_unsafe_tags(
+        self,
+    ) -> None:
+        results = []
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "unsafe.md"
+            path.write_text(
+                "---\n!!python/object/apply:builtins.str [unsafe]\n---\nBody\n",
+                encoding="utf-8",
+            )
+            for loader in {yaml.SafeLoader, knowledge_model.SAFE_YAML_LOADER}:
+                with (
+                    self.subTest(loader=loader.__name__),
+                    patch.object(knowledge_model, "SAFE_YAML_LOADER", loader),
+                ):
+                    knowledge_model._KNOWLEDGE_TREE_CACHE.clear()
+                    results.append(
+                        knowledge_model.validate_knowledge_tree(
+                            ROOT / "resources/knowledge",
+                            schema_root=ROOT / "resources/schemas",
+                            today=dt.date(2026, 8, 29),
+                        )
+                    )
+                    with self.assertRaisesRegex(
+                        knowledge_model.KnowledgeError, "Invalid frontmatter"
+                    ):
+                        knowledge_model.parse_markdown_entry(path)
+        self.assertTrue(all(result == results[0] for result in results))
+
     def test_historical_decision_remains_readable_after_knowledge_evolves(
         self,
     ) -> None:

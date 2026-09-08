@@ -1,0 +1,311 @@
+schema_version: '1.2'
+decision:
+  id: ADR-HENGMU-V1.2.1-WINDOWS-ENCODING-001
+  source_review: hengmu-20260908-v1-2-1-windows-encoding-project-verified
+  source_review_sha256: ffbadcf0c71bb69e82e433c574a85cc46f17c46f5313f31ed178eb0b4db8074e
+  decided_at: '2026-09-08T03:00:07.830593+00:00'
+  decision_makers:
+  - architecture-owner
+  status: accepted
+  supersedes: ADR-HENGMU-V1.2.1-VALIDATION-001
+  knowledge_selection_path: .architecture/reviews/inputs/2026-09-08-v1-2-1-windows-encoding-decision-knowledge-selection.yaml
+  knowledge_selection_sha256: 5c1084a5ecf5796ecc1a195adca1af2f5f44a3ce2018c2a41c8bb51f233858c7
+problem:
+  quality_attributes:
+  - compatibility
+  - maintainability
+  - deterministic-enforcement
+  constraints:
+  - Retain public Skill names, artifact schemas, safe parsing, the exact 0.88 similarity threshold, and
+    immutable release contracts.
+  - Keep the patch scoped to validated Knowledge performance, local changed-line coverage, namespace coverage,
+    and internal maintenance.
+  - Require fresh source-bound independent review, passed deterministic evidence, hosted quality gates,
+    two-format package integrity and a current Codex host smoke before publication.
+  finding_ids: []
+  assumptions:
+  - The explicit user request to publish follows the concrete recommendation to release these fixes as
+    v1.2.1.
+  - No additional runtime or persisted-data migration is required for the scoped patch.
+  known_facts:
+  - The current independent Review is bound by its raw SHA-256 and has zero Findings across all 31 rules
+    and six critical flows.
+  - The clean locked-environment Provider passed 373 JUnit cases with zero failures/errors/skips; the
+    earlier missing-coverage environment failure is preserved separately.
+  - Both 1.2.1 package formats passed byte-for-byte rebuild comparison, extracted runtime smoke, checksums,
+    dependency and license audits, and SBOM generation.
+  - The current desktop host reloaded the installed 1.2.1 Skill catalog; installed runtime version and
+    Knowledge validation were observed.
+  unknowns:
+  - Prior hosted Linux and macOS passed; Windows failed due locale-based Git path decoding. The corrected
+    owner has clean deterministic regression proof; refreshed hosted checks and immutable publication
+    remain external completion gates.
+  - The standalone CLI route attempts were unsuccessful due host tool plumbing; only the current desktop
+    routing observation is claimed.
+  - No stochastic model-quality or additional host-support claim is made.
+knowledge_snapshot:
+- id: domain.plugin-platform
+  version: 1.0.0
+  sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c
+- id: foundation.evolutionary-architecture
+  version: 1.0.0
+  sha256: b9b125fa34bdeb346145f926210f7052d60d8f3b5f4e225cf1aa0fdb6a7888e5
+- id: foundation.proportional-design
+  version: 1.0.0
+  sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df
+- id: foundation.quality-attributes
+  version: 1.0.0
+  sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680
+- id: foundation.technology-selection
+  version: 1.0.0
+  sha256: ce43c17d29cc79ad65c0f1a551a938f3fec642d1e75070b98d4aa3336ddf882d
+- id: foundation.tradeoff-analysis
+  version: 1.0.0
+  sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5
+- id: domain.test-automation-platform
+  version: 1.0.0
+  sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016
+options:
+- id: keep-current
+  title: Publish the verified scoped v1.2.1 patch
+  complexity_tier: keep-current
+  architecture_styles: []
+  patterns: []
+  technologies: []
+  benefits:
+  - Delivers the validated performance and coverage fixes with existing plugin architecture.
+  liabilities:
+  - Requires the existing release evidence and hosted gates before immutable publication.
+  assumptions:
+  - The current scoped implementation and public plugin contracts remain the release boundary.
+  quality_attribute_effects:
+  - attribute: compatibility
+    effect: neutral
+    rationale: A correction at the existing validation owner retains exact authority and compatibility
+      while reducing unnecessary work.
+  - attribute: maintainability
+    effect: improves
+    rationale: A correction at the existing validation owner retains exact authority and compatibility
+      while reducing unnecessary work.
+  - attribute: deterministic-enforcement
+    effect: improves
+    rationale: A correction at the existing validation owner retains exact authority and compatibility
+      while reducing unnecessary work.
+  business_fit: Delivers the validated performance and coverage fixes with existing plugin architecture.
+  team_fit: Uses the existing single-maintainer Python and plugin workflow.
+  evolution_fit: A correction at the existing validation owner retains exact authority and compatibility
+    while reducing unnecessary work.
+  implementation_complexity: low
+  operational_complexity: low
+  migration_risk: low
+  reversibility: easy
+  cost: low
+  technical_maturity: mature
+  lock_in: none
+  tradeoff_scores:
+    business_fit: 2
+    quality_fit: 2
+    team_fit: 2
+    implementation: 2
+    operations: 2
+    migration: 2
+    reversibility: 2
+    cost: 2
+    maturity: 2
+    lock_in: 2
+    evolution: 2
+  rejected_reasons: []
+- id: defer-patch
+  title: Defer this patch to a later feature release
+  complexity_tier: low
+  architecture_styles: []
+  patterns: []
+  technologies: []
+  benefits:
+  - Avoids a separate release operation today.
+  liabilities:
+  - Leaves the current installed validation and maintainer coverage issues undistributed.
+  assumptions:
+  - The current scoped implementation and public plugin contracts remain the release boundary.
+  quality_attribute_effects:
+  - attribute: compatibility
+    effect: neutral
+    rationale: No unresolved implementation risk justifies coupling these verified fixes to a larger feature
+      release; the user explicitly requested this patch publication.
+  - attribute: maintainability
+    effect: neutral
+    rationale: No unresolved implementation risk justifies coupling these verified fixes to a larger feature
+      release; the user explicitly requested this patch publication.
+  - attribute: deterministic-enforcement
+    effect: neutral
+    rationale: No unresolved implementation risk justifies coupling these verified fixes to a larger feature
+      release; the user explicitly requested this patch publication.
+  business_fit: Avoids a separate release operation today.
+  team_fit: Uses the existing single-maintainer Python and plugin workflow.
+  evolution_fit: No unresolved implementation risk justifies coupling these verified fixes to a larger
+    feature release; the user explicitly requested this patch publication.
+  implementation_complexity: low
+  operational_complexity: low
+  migration_risk: low
+  reversibility: easy
+  cost: low
+  technical_maturity: mature
+  lock_in: none
+  tradeoff_scores:
+    business_fit: 0
+    quality_fit: 0
+    team_fit: 0
+    implementation: 0
+    operations: 0
+    migration: 0
+    reversibility: 0
+    cost: 0
+    maturity: 0
+    lock_in: 0
+    evolution: 0
+  rejected_reasons:
+  - No unresolved implementation risk justifies coupling these verified fixes to a larger feature release;
+    the user explicitly requested this patch publication.
+- id: external-validation-service
+  title: Move validation into a parallel hosted service
+  complexity_tier: high
+  architecture_styles: []
+  patterns: []
+  technologies: []
+  benefits:
+  - Could centralize execution across clients.
+  liabilities:
+  - Introduces network, state, service ownership and a new trust boundary without a demonstrated requirement.
+  assumptions:
+  - The current scoped implementation and public plugin contracts remain the release boundary.
+  quality_attribute_effects:
+  - attribute: compatibility
+    effect: neutral
+    rationale: The repository requires a local/offline runtime and scoped authority; a hosted service
+      exceeds this patch goal and adds unsupported operating cost.
+  - attribute: maintainability
+    effect: degrades
+    rationale: The repository requires a local/offline runtime and scoped authority; a hosted service
+      exceeds this patch goal and adds unsupported operating cost.
+  - attribute: deterministic-enforcement
+    effect: degrades
+    rationale: The repository requires a local/offline runtime and scoped authority; a hosted service
+      exceeds this patch goal and adds unsupported operating cost.
+  business_fit: Could centralize execution across clients.
+  team_fit: Requires a new service owner and operational support absent from this project.
+  evolution_fit: The repository requires a local/offline runtime and scoped authority; a hosted service
+    exceeds this patch goal and adds unsupported operating cost.
+  implementation_complexity: high
+  operational_complexity: high
+  migration_risk: high
+  reversibility: difficult
+  cost: high
+  technical_maturity: unknown
+  lock_in: high
+  tradeoff_scores:
+    business_fit: -2
+    quality_fit: -2
+    team_fit: -2
+    implementation: -2
+    operations: -2
+    migration: -2
+    reversibility: -2
+    cost: -2
+    maturity: -2
+    lock_in: -2
+    evolution: -2
+  rejected_reasons:
+  - The repository requires a local/offline runtime and scoped authority; a hosted service exceeds this
+    patch goal and adds unsupported operating cost.
+selected_option: keep-current
+rationale: Retain the independently verified implementation and publish it as v1.2.1 under the user's
+  explicit release instruction. The change preserves the existing architecture, schemas, safe loader constructors
+  and exact similarity policy, while repairing local coverage, Windows UTF-8 Git path decoding and reducing
+  validation work. No Finding remediation or new runtime architecture is accepted. A release-only keep-current
+  record satisfies the public-version governance boundary; the external gates remain required.
+revisit_triggers:
+- A targeted invariant, hosted matrix lane, source-history anchor, archive digest or attestation check
+  fails.
+- A real consumer demonstrates a compatibility regression in the supported Python/host boundary.
+- The Knowledge freshness or source/runtime lock fails validation.
+acceptance_evidence:
+- The user explicitly instructed publication after the assistant identified the exact v1.2.1 patch scope.
+  This records acceptance of that existing implementation and release scope, not human verification of
+  Findings or acceptance of risk.
+- The independent verifier supplies V2 agent evidence only; no V3, V4, V5 or independent GitHub human
+  approval is claimed.
+- Zero source Findings and keep-current require no remediation Plan; no waiver, risk acceptance or policy
+  change is created.
+hard_eliminations:
+- option_id: external-validation-service
+  rule: The accepted repository constraints require a local/offline runtime and prohibit a required hosted
+    service.
+  evidence:
+  - .architecture/constraints.md and profile business_context.prohibited_services retain the offline/local
+    runtime boundary.
+  - The explicit user task authorizes a patch release, not a new execution service.
+migration:
+  affected_paths:
+  - .architecture/evidence/test-results-20260907t232113273419z-7af818a23076.result
+  - .architecture/evidence/test-results-20260907t232113273419z-7af818a23076.stderr
+  - .architecture/evidence/test-results-20260907t232113273419z-7af818a23076.stdout
+  - .architecture/evidence/test-results-20260907t232113273419z-7af818a23076.yaml
+  - .architecture/evidence/test-results-20260907t232710827964z-0c8d633d1cc1.result
+  - .architecture/evidence/test-results-20260907t232710827964z-0c8d633d1cc1.stderr
+  - .architecture/evidence/test-results-20260907t232710827964z-0c8d633d1cc1.stdout
+  - .architecture/evidence/test-results-20260907t232710827964z-0c8d633d1cc1.yaml
+  - .architecture/reviews/2026-09-08-v1-2-1-validation-architecture-decision.yaml
+  - .architecture/reviews/2026-09-08-v1-2-1-validation-project-candidates.yaml
+  - .architecture/reviews/2026-09-08-v1-2-1-validation-project-report.md
+  - .architecture/reviews/2026-09-08-v1-2-1-validation-project-verified.yaml
+  - .architecture/reviews/2026-09-08-v1-2-1-validation-r2-project-candidates.yaml
+  - .architecture/reviews/inputs/2026-09-08-v1-2-1-validation-decision-knowledge-context.yaml
+  - .architecture/reviews/inputs/2026-09-08-v1-2-1-validation-decision-knowledge-selection.yaml
+  - .architecture/reviews/inputs/2026-09-08-v1-2-1-validation-knowledge-context.yaml
+  - .architecture/reviews/inputs/2026-09-08-v1-2-1-validation-knowledge-selection.yaml
+  - .architecture/reviews/inputs/2026-09-08-v1-2-1-validation-profile.yaml
+  - .architecture/reviews/inputs/2026-09-08-v1-2-1-validation-repository-facts.yaml
+  - .codex-plugin/plugin.json
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - README.md
+  - README.zh-CN.md
+  - docs/compatibility-evidence/2026-09-08-hengmu-1.2.1.md
+  - docs/host-compatibility.md
+  - plugin.json
+  - pyproject.toml
+  - resources/scripts/architecture_tool.py
+  - resources/scripts/artifact_types.py
+  - resources/scripts/knowledge_model.py
+  - resources/selector-source.json
+  - resources/templates/knowledge-selection.yaml
+  - scripts/check_changed_coverage.py
+  - scripts/curate_golden_knowledge.py
+  - scripts/run_behavior_benchmark.py
+  - scripts/validate_repository.py
+  - tests/test_ai_agent_depth.py
+  - tests/test_architecture_tool.py
+  - tests/test_changed_coverage.py
+  - tests/test_constrained_target_architecture.py
+  - tests/test_package_plugin.py
+  - tests/test_repository_contract.py
+  - tests/test_review_execution.py
+  - tests/test_site_contract.py
+  - tests/test_target_architecture.py
+  slices:
+  - Preserve the implementation, selector-source, failed-environment evidence, passed Provider, per-run
+    inputs, candidate revisions, independent verified Review and this Decision as separate immutable source
+    ancestry.
+  - Merge the release pull request using a Merge Commit after the final hosted Quality gate passes.
+  - Require the tag workflow to prepare the exact six assets, verify their provenance and SPDX attestations,
+    then publish once and verify immutable state and all remote digests.
+  rollback: Before publication, stop release and retain the old immutable version. Restore the saved complete
+    1.2.0 personal installation if necessary. After publication, never move the 1.2.1 tag or replace its
+    assets; issue a corrective patch release.
+  validation:
+  - Validate candidate, independent Review, Decision, current-runtime selections and contexts, Provider
+    closure, repository/project/history and layered change/release gates.
+  - Require the eight hosted Python/OS lanes including coverage, types, lint, audits, packaging, checksums
+    and SBOMs.
+  - Verify installed current desktop routing/runtime and exact-six immutable Release inventory plus provenance
+    and SPDX attestations.
