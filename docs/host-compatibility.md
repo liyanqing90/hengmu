@@ -25,7 +25,10 @@ installation path, routed Skill, and observed result.
 
 The current dated Codex observation and explicit unverified-host boundaries are
 recorded in the
-[Hengmu 1.1.3 host compatibility report](compatibility-evidence/2026-08-29-hengmu-1.1.3.md).
+[Hengmu 1.2.1 host compatibility report](compatibility-evidence/2026-09-08-hengmu-1.2.1.md).
+The prior
+[Hengmu 1.1.3 report](compatibility-evidence/2026-08-29-hengmu-1.1.3.md)
+remains available as historical evidence.
 The prior
 [Hengmu 1.1.2 report](compatibility-evidence/2026-08-29-hengmu-1.1.2.md)
 remains available as historical evidence.
